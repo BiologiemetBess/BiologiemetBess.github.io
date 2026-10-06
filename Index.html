@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rivier met takken</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#fbfcfd;--fg:#17202a;--muted:#56606e;--card:#f1f4f8;--line:#cbd3de;
+--main:#6b7a8c;--main-soft:#d9dfe7;--branch:#2f7fc1;--branch-soft:#cfe4f6;}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+--bg:#12161c;--fg:#e8ecf2;--muted:#a2adbd;--card:#1b212a;--line:#363f4d;
+--main:#9aa8ba;--main-soft:#2c3541;--branch:#6aa9e6;--branch-soft:#1f3b57;}}
+:root[data-theme="dark"]{
+--bg:#12161c;--fg:#e8ecf2;--muted:#a2adbd;--card:#1b212a;--line:#363f4d;
+--main:#9aa8ba;--main-soft:#2c3541;--branch:#6aa9e6;--branch-soft:#1f3b57;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 16px 32px;max-width:720px;margin-inline:auto}
+h1{font-size:24px;font-weight:600;margin:0 0 8px;line-height:1.25}
+h2{font-size:16px;font-weight:600;margin:28px 0 8px}
+p{margin:0 0 12px;max-width:62ch}
+.lead{color:var(--muted)}
+.control{display:flex;align-items:center;gap:14px;margin:20px 0 4px;flex-wrap:wrap}
+.control label{font-weight:600}
+.control output{font-variant-numeric:tabular-nums;font-weight:600;min-width:1.5em}
+input[type=range]{flex:1;min-width:180px;height:32px;accent-color:var(--branch)}
+input[type=range]:focus-visible{outline:3px solid var(--branch);outline-offset:4px;border-radius:6px}
+table{border-collapse:collapse;width:100%;margin:12px 0 0;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-weight:500;color:var(--muted);font-size:14px}
+td:first-child{font-weight:600}
+.sentence{background:var(--card);border-left:4px solid var(--branch);padding:12px 14px;margin:16px 0 0;border-radius:0}
+svg{display:block;width:100%;height:auto}
+.band{fill:none}
+.band.main{stroke:var(--main-soft);stroke-width:20}
+.band.br{stroke:var(--branch-soft);stroke-width:8}
+.flow{fill:none;stroke-width:2;stroke-dasharray:2 13;animation:flow linear infinite}
+.fm{stroke:var(--main)}
+.fb{stroke:var(--branch)}
+@keyframes flow{to{stroke-dashoffset:-15}}
+@media (prefers-reduced-motion: reduce){.flow{animation:none}}
+.lab{font:13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--muted)}
+</style>
+</head>
+<body>
+<h1>Rivier met takken</h1>
+<p class="lead">Per seconde stroomt overal 40 m³ water. Voorspel eerst en verander dan het aantal takken. Wanneer gaat het water in een tak langzamer dan in de hoofdrivier?</p>
+
+<div class="control">
+<label for="n">Aantal takken</label>
+<input type="range" id="n" min="1" max="10" value="1" step="1" aria-describedby="uitleg">
+<output id="nOut" for="n">1</output>
+</div>
+
+<table>
+<thead><tr><th scope="col"></th><th scope="col">Doorsnede</th><th scope="col">Snelheid van het water</th></tr></thead>
+<tbody>
+<tr><td>Hoofdrivier</td><td>40 m²</td><td>1 m/s</td></tr>
+<tr><td id="rowLabel">Takken samen</td><td id="areaCell"></td><td id="speedCell"></td></tr>
+</tbody>
+</table>
+<p class="sentence" id="uitleg" aria-live="polite"></p>
+
+<h2>Van boven gezien</h2>
+<svg id="top" viewBox="0 0 640 250" role="img" aria-label="Bovenaanzicht van een rivier die zich splitst in takken en weer samenkomt"></svg>
+
+<script>
+(function(){
+var NF = new Intl.NumberFormat('nl-NL',{maximumFractionDigits:1});
+var Q = 40, MAIN = 40, BR = 8;
+var slider = document.getElementById('n');
+function drawTop(n,v){
+var ys = n===1 ? [125] : Array.from({length:n},function(_,i){return 50+150*i/(n-1);});
+var dm = 1, db = Math.max(0.2, 1/v);
+var s = '<path d="M20 125H160" class="band main"/><path d="M480 125H620" class="band main"/>';
+ys.forEach(function(y){
+s += '<path d="M160 125C190 125 200 '+y+' 230 '+y+'H410C440 '+y+' 450 125 480 125" class="band br"/>';
+});
+s += '<path d="M20 125H160" class="flow fm" style="animation-duration:'+dm+'s"/>';
+s += '<path d="M480 125H620" class="flow fm" style="animation-duration:'+dm+'s"/>';
+ys.forEach(function(y){
+s += '<path d="M160 125C190 125 200 '+y+' 230 '+y+'H410C440 '+y+' 450 125 480 125" class="flow fb" style="animation-duration:'+db+'s"/>';
+});
+s += '<text x="20" y="96" class="lab">hoofdrivier</text>';
+s += '<text x="320" y="24" text-anchor="middle" class="lab">'+n+(n===1?' tak':' takken')+'</text>';
+return s;
+}
+function render(){
+var n = +slider.value, A = n*BR, v = Q/A;
+document.getElementById('nOut').textContent = n;
+document.getElementById('areaCell').textContent = NF.format(A)+' m²';
+document.getElementById('speedCell').textContent = NF.format(v)+' m/s per tak';
+document.getElementById('rowLabel').textContent = n===1 ? 'Eén tak' : n+' takken samen';
+var msg;
+if(A < MAIN){ msg = 'De takken samen hebben een kleinere doorsnede dan de hoofdrivier. Het water gaat sneller.'; }
+else if(A === MAIN){ msg = 'De takken samen hebben evenveel doorsnede als de hoofdrivier. Het water gaat even snel.'; }
+else { msg = 'De takken samen hebben een grotere doorsnede dan de hoofdrivier. Het water gaat langzamer, ook al is elke tak smal.'; }
+document.getElementById('uitleg').textContent = msg;
+document.getElementById('top').innerHTML = drawTop(n,v);
+}
+slider.addEventListener('input', render);
+render();
+})();
+</script>
+</body>
+</html>
